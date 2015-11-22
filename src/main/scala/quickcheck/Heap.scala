@@ -1,5 +1,7 @@
 package quickcheck
 
+import scala.annotation.tailrec
+
 trait IntHeap extends Heap {
   override type A = Int
 
@@ -45,7 +47,7 @@ trait BinomialHeap extends Heap {
 
   override def insert(x: A, ts: H) = ins(Node(x, 0, Nil), ts)
 
-  override def meld(ts1: H, ts2: H) = (ts1, ts2) match {
+  override def meld(heap1: H, heap2: H) = (heap1, heap2) match {
     case (Nil, ts) => ts
     case (ts, Nil) => ts
     case (t1 :: ts1, t2 :: ts2) =>
@@ -54,7 +56,7 @@ trait BinomialHeap extends Heap {
       else ins(link(t1, t2), meld(ts1, ts2))
   }
 
-  override def findMin(ts: H) = ts match {
+  override def findMin(heap: H) = heap match {
     case Nil => throw new NoSuchElementException("min of empty heap")
     case t :: Nil => root(t)
     case t :: ts =>
@@ -62,7 +64,7 @@ trait BinomialHeap extends Heap {
       if (ord.lteq(root(t), x)) root(t) else x
   }
 
-  override def deleteMin(ts: H) = ts match {
+  override def deleteMin(heap: H) = heap match {
     case Nil => throw new NoSuchElementException("delete min of empty heap")
     case t :: ts =>
       def getMin(t: Node, ts: H): (Node, H) = ts match {
@@ -82,10 +84,11 @@ trait BinomialHeap extends Heap {
   protected def link(t1: Node, t2: Node): Node = // t1.r==t2.r
     if (ord.lteq(t1.x, t2.x)) Node(t1.x, t1.r + 1, t2 :: t1.c) else Node(t2.x, t2.r + 1, t1 :: t2.c)
 
-  protected def ins(t: Node, ts: H): H = ts match {
+  @tailrec
+  protected final def ins(t: Node, ts: H): H = ts match {
     case Nil => List(t)
-    case tp :: ts => // t.r<=tp.r
-      if (t.r < tp.r) t :: tp :: ts else ins(link(t, tp), ts)
+    case tp :: nodes => // t.r<=tp.r
+      if (t.r < tp.r) t :: tp :: nodes else ins(link(t, tp), nodes)
   }
 
   case class Node(x: A, r: Rank, c: List[Node])
@@ -93,7 +96,7 @@ trait BinomialHeap extends Heap {
 }
 
 trait Bogus1BinomialHeap extends BinomialHeap {
-  override def findMin(ts: H) = ts match {
+  override def findMin(heap: H) = heap match {
     case Nil => throw new NoSuchElementException("min of empty heap")
     case t :: ts => root(t)
   }
@@ -110,15 +113,15 @@ trait Bogus3BinomialHeap extends BinomialHeap {
 }
 
 trait Bogus4BinomialHeap extends BinomialHeap {
-  override def deleteMin(ts: H) = ts match {
+  override def deleteMin(heap: H) = heap match {
     case Nil => throw new NoSuchElementException("delete min of empty heap")
     case t :: ts => meld(t.c.reverse, ts)
   }
 }
 
 trait Bogus5BinomialHeap extends BinomialHeap {
-  override def meld(ts1: H, ts2: H) = ts1 match {
-    case Nil => ts2
-    case t1 :: ts1 => List(Node(t1.x, t1.r, ts1 ++ ts2))
+  override def meld(heap1: H, heap2: H) = heap1 match {
+    case Nil => heap2
+    case t1 :: ts1 => List(Node(t1.x, t1.r, ts1 ++ heap2))
   }
 }
